@@ -1,0 +1,65 @@
+package com.util.libdroid;
+
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.util.libdroid.db.Cache;
+import com.util.libdroid.db.Configuration;
+
+/**
+ * Created by wally.yan on 2014/11/5.
+ */
+public class DBManager {
+
+    public static void initialize(Context context) {
+        initialize(new Configuration.Builder(context).create());
+    }
+
+    public static void initialize(Configuration configuration) {
+        initialize(configuration, false);
+    }
+
+    public static void initialize(Context context, boolean loggingEnabled) {
+        initialize(new Configuration.Builder(context).create(), loggingEnabled);
+    }
+
+    public static void initialize(Configuration configuration, boolean loggingEnabled) {
+        Cache.initialize(configuration);
+    }
+
+    public static void clearCache() {
+        Cache.clear();
+    }
+
+    public static void dispose() {
+        Cache.dispose();
+    }
+
+    public static SQLiteDatabase getDatabase() {
+        return Cache.openDatabase();
+    }
+
+    public static void beginTransaction() {
+        Cache.openDatabase().beginTransaction();
+    }
+
+    public static void endTransaction() {
+        Cache.openDatabase().endTransaction();
+    }
+
+    public static void setTransactionSuccessful() {
+        Cache.openDatabase().setTransactionSuccessful();
+    }
+
+    public static boolean inTransaction() {
+        return Cache.openDatabase().inTransaction();
+    }
+
+    public static void execSQL(String sql) {
+        Cache.openDatabase().execSQL(sql);
+    }
+
+    public static void execSQL(String sql, Object[] bindArgs) {
+        Cache.openDatabase().execSQL(sql, bindArgs);
+    }
+}
