@@ -106,23 +106,6 @@ public abstract class Model {
 		return mId;
 	}
 
-	// Convenience methods
-
-	public static void delete(Class<? extends Model> type, long id) {
-		TableInfo tableInfo = Cache.getTableInfo(type);
-		new Delete().from(type).where(tableInfo.getIdName()+"=?", id).execute();
-	}
-
-	public static <T extends Model> T load(Class<T> type, long id) {
-		TableInfo tableInfo = Cache.getTableInfo(type);
-		return (T) new Select().from(type).where(tableInfo.getIdName()+"=?", id).executeSingle();
-	}
-
-    public static <T extends Model>  List<T> loadAll(Class<T> type) {
-        TableInfo tableInfo = Cache.getTableInfo(type);
-        return new Select().from(type).execute();
-    }
-
 	// Model population
 
 	public final void loadFromCursor(Cursor cursor) {

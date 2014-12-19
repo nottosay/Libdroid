@@ -5,7 +5,6 @@ android {
     buildToolsVersion "20.0.0"
 
     defaultConfig {
-        applicationId "com.quhuhu.libdroid"
         minSdkVersion 14
         targetSdkVersion 19
         versionCode 1
@@ -13,7 +12,7 @@ android {
     }
     buildTypes {
         release {
-            runProguard false
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -22,3 +21,9 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
+
+task buildJar(type:Jar) {
+    from "src/main/java"
+    destinationDir = file('build/libs')
+}
+

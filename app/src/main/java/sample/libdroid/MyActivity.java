@@ -13,6 +13,7 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.util.libdroid.DBManager;
 import com.util.libdroid.ViewInjector;
 import com.util.libdroid.db.Cache;
 import com.util.libdroid.db.Model;
@@ -80,7 +81,7 @@ public class MyActivity extends Activity {
         protected void onPostExecute(UserModel userModel) {
             super.onPostExecute(userModel);
 
-            mAdapter.setData(Model.loadAll(UserModel.class));
+            mAdapter.setData(DBManager.loadAll(UserModel.class));
         }
     }
 

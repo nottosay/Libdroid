@@ -5,6 +5,12 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.util.libdroid.db.Cache;
 import com.util.libdroid.db.Configuration;
+import com.util.libdroid.db.Model;
+import com.util.libdroid.db.TableInfo;
+import com.util.libdroid.db.query.Delete;
+import com.util.libdroid.db.query.Select;
+
+import java.util.List;
 
 /**
  * Created by wally.yan on 2014/11/5.
@@ -61,5 +67,26 @@ public class DBManager {
 
     public static void execSQL(String sql, Object[] bindArgs) {
         Cache.openDatabase().execSQL(sql, bindArgs);
+    }
+
+    // Convenience methods
+    public static void delete(Class<? extends Model> type, long id) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        new Delete().from(type).where(tableInfo.getIdName()+"=?", id).execute();
+    }
+
+    public static <T extends Model> T load(Class<T> type, long id) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return (T) new Select().from(type).where(tableInfo.getIdName()+"=?", id).executeSingle();
+    }
+
+    public static <T extends Model> List<T> loadAll(Class<T> type) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return new Select().from(type).execute();
+    }
+
+    public static <T extends Model> List<T> loadAll(Class<T> type,String whereStr,Object... mWhereArguments) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return new Select().from(type).where(whereStr,mWhereArguments).execute();
     }
 }
