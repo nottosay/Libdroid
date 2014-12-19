@@ -22,8 +22,15 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
 
-task buildJar(type:Jar) {
-    from "src/main/java"
-    destinationDir = file('build/libs')
+task buildJar(type: Copy) {
+    from( 'build/intermediates/bundles/release')
+    into( 'build/libs')
+    include('classes.jar')
+    rename('classes.jar', 'Libdroid.jar')
 }
 
+task releaseLib(type: Copy, dependsOn: buildJar) {
+    into "build/intermediates/bundles/release"
+    from 'libs'
+    from 'build/libs'
+}
