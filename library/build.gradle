@@ -28,9 +28,3 @@ task buildJar(type: Copy) {
     include('classes.jar')
     rename('classes.jar', 'Libdroid.jar')
 }
-
-task releaseLib(type: Copy, dependsOn: buildJar) {
-    into "build/intermediates/bundles/release"
-    from 'libs'
-    from 'build/libs'
-}
