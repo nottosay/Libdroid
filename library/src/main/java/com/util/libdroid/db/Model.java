@@ -31,9 +31,10 @@ public abstract class Model {
 		return mId;
 	}
 
-	public final void delete() {
-		Cache.openDatabase().delete(mTableInfo.getTableName(), idName+"=?", new String[] { getId().toString() });
+	public final int delete() {
+		int rows = Cache.openDatabase().delete(mTableInfo.getTableName(), idName+"=?", new String[] { getId().toString() });
 		Cache.removeEntity(this);
+        return  rows;
 	}
 
 	public final Long save() {
@@ -190,6 +191,9 @@ public abstract class Model {
                 LogUtils.e(e.getClass().getName(), e);
 			}
 		}
+        if (mId != null) {
+            Cache.addEntity(this);
+        }
 	}
 
 	protected final <T extends Model> List<T> getMany(Class<T> type, String foreignKey) {

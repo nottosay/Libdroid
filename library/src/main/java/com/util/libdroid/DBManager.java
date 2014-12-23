@@ -75,6 +75,11 @@ public class DBManager {
         new Delete().from(type).where(tableInfo.getIdName()+"=?", id).execute();
     }
 
+    public static void delete(Class<? extends Model> type,String whereStr,Object... mWhereArguments) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        new Delete().from(type).where(whereStr, mWhereArguments).execute();
+    }
+
     public static <T extends Model> T load(Class<T> type, long id) {
         TableInfo tableInfo = Cache.getTableInfo(type);
         return (T) new Select().from(type).where(tableInfo.getIdName()+"=?", id).executeSingle();
