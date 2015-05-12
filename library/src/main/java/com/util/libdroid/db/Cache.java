@@ -24,72 +24,71 @@ import dalvik.system.DexFile;
  */
 public final class Cache {
 
-	public static final int DEFAULT_CACHE_SIZE = 2*1024;
+    public static final int DEFAULT_CACHE_SIZE = 2 * 1024;
 
-	private static Context sContext;
+    private static Context sContext;
 
-	private static DatabaseHelper sDatabaseHelper;
+    private static DatabaseHelper sDatabaseHelper;
 
-	private static Map<Class<? extends Model>, TableInfo> mTableInfos;
+    private static Map<Class<? extends Model>, TableInfo> mTableInfos;
 
     private static LruCache<String, Model> sEntities;
 
     private static boolean sIsInitialized = false;
 
-	public static synchronized void initialize(Configuration configuration) {
-		if (sIsInitialized) {
-			return;
-		}
+    public static synchronized void initialize(Configuration configuration) {
+        if (sIsInitialized) {
+            return;
+        }
 
-		sContext = configuration.getContext();
+        sContext = configuration.getContext();
 
-		sDatabaseHelper = new DatabaseHelper(configuration);
+        sDatabaseHelper = new DatabaseHelper(configuration);
 
-		mTableInfos = new HashMap<Class<? extends Model>, TableInfo>();
+        mTableInfos = new HashMap<Class<? extends Model>, TableInfo>();
 
         sEntities = new LruCache<String, Model>(DEFAULT_CACHE_SIZE);
 
         try {
             scanForModel(configuration.getContext());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             LogUtils.e("Couldn't open source path.", e);
         }
 
-		openDatabase();
+        openDatabase();
 
-		sIsInitialized = true;
+        sIsInitialized = true;
 
-	}
+    }
 
-	public static synchronized void clear() {
+    public static synchronized void clear() {
         sEntities.evictAll();
-	}
+    }
 
-	public static synchronized void dispose() {
-		closeDatabase();
-		mTableInfos = null;
-		sDatabaseHelper = null;
-		sIsInitialized = false;
-	}
+    public static synchronized void dispose() {
+        closeDatabase();
+        mTableInfos = null;
+        sDatabaseHelper = null;
+        sIsInitialized = false;
+    }
 
-	// Database access
-	public static boolean isInitialized() {
-		return sIsInitialized;
-	}
+    // Database access
+    public static boolean isInitialized() {
+        return sIsInitialized;
+    }
 
-	public static synchronized SQLiteDatabase openDatabase() {
-		return sDatabaseHelper.getWritableDatabase();
-	}
+    public static synchronized SQLiteDatabase openDatabase() {
+        return sDatabaseHelper.getWritableDatabase();
+    }
 
-	public static synchronized void closeDatabase() {
-		sDatabaseHelper.close();
-	}
+    public static synchronized void closeDatabase() {
+        sDatabaseHelper.close();
+    }
 
-	// Context access
-	public static Context getContext() {
-		return sContext;
-	}
+    // Context access
+    public static Context getContext() {
+        return sContext;
+    }
 
     // Entity cache
     public static String getIdentifier(Class<? extends Model> type, Long id) {
@@ -123,11 +122,11 @@ public final class Cache {
     }
 
     public static synchronized String getTableName(Class<? extends Model> type) {
-        return mTableInfos.get(type) == null?null:mTableInfos.get(type).getTableName();
+        return mTableInfos.get(type) == null ? null : mTableInfos.get(type).getTableName();
     }
 
 
-    private  static  void scanForModel(Context context) throws IOException {
+    private static void scanForModel(Context context) throws IOException {
         String packageName = context.getPackageName();
         String sourcePath = context.getApplicationInfo().sourceDir;
         List<String> paths = new ArrayList<String>();
@@ -164,8 +163,7 @@ public final class Cache {
             for (File file : path.listFiles()) {
                 scanForModelClasses(file, packageName, classLoader);
             }
-        }
-        else {
+        } else {
             String className = path.getName();
 
             // Robolectric fallback
@@ -174,8 +172,7 @@ public final class Cache {
 
                 if (className.endsWith(".class")) {
                     className = className.substring(0, className.length() - 6);
-                }
-                else {
+                } else {
                     return;
                 }
 
@@ -197,8 +194,7 @@ public final class Cache {
                     mTableInfos.put(modelClass, new TableInfo(modelClass));
                 }
 
-            }
-            catch (ClassNotFoundException e) {
+            } catch (ClassNotFoundException e) {
                 LogUtils.e("Couldn't create class.", e);
             }
         }

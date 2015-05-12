@@ -2,15 +2,14 @@ package com.util.libdroid;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.text.TextUtils;
 import android.view.View;
 
 import com.util.libdroid.utils.LogUtils;
 import com.util.libdroid.view.ResLoader;
 import com.util.libdroid.view.ViewFinder;
 import com.util.libdroid.view.annotation.ContentView;
-import com.util.libdroid.view.annotation.InjectRes;
-import com.util.libdroid.view.annotation.InjectView;
+import com.util.libdroid.view.annotation.FindRes;
+import com.util.libdroid.view.annotation.Find;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -63,7 +62,7 @@ public class ViewInjector {
         Field[] fields = classType.getDeclaredFields();
         if (fields != null && fields.length > 0) {
             for (Field field : fields) {
-                InjectView injectView = field.getAnnotation(InjectView.class);
+                Find injectView = field.getAnnotation(Find.class);
                 if (injectView != null) {
                     try {
                         View view = finder.findViewById(injectView.value(), injectView.parentId());
@@ -75,7 +74,7 @@ public class ViewInjector {
                         LogUtils.e(e.getMessage(), e);
                     }
                 } else {
-                    InjectRes injectRes = field.getAnnotation(InjectRes.class);
+                    FindRes injectRes = field.getAnnotation(FindRes.class);
                     if (injectRes != null) {
                         try {
                             Object res = ResLoader.loadRes(injectRes.type(), finder.getContext(), injectRes.value());

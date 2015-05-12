@@ -1,6 +1,7 @@
 package com.util.libdroid.utils;
 
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.text.TextUtils;
 
@@ -8,7 +9,8 @@ import com.util.libdroid.db.Cache;
 import com.util.libdroid.db.Model;
 import com.util.libdroid.db.TableInfo;
 import com.util.libdroid.db.annotation.Column;
-import com.util.libdroid.db.annotation.Column.ConflictAction;
+import com.util.libdroid.db.query.Delete;
+import com.util.libdroid.db.query.Select;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -17,7 +19,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public final class SQLiteUtils {
 
@@ -54,100 +55,7 @@ public final class SQLiteUtils {
     };
 
     private static HashMap<String, List<String>> sIndexGroupMap;
-    private static HashMap<String, List<String>> sUniqueGroupMap;
-    private static HashMap<String, ConflictAction> sOnUniqueConflictsMap;
 
-    public static void execSql(String sql) {
-        Cache.openDatabase().execSQL(sql);
-    }
-
-    public static void execSql(String sql, Object[] bindArgs) {
-        Cache.openDatabase().execSQL(sql, bindArgs);
-    }
-
-    public static <T extends Model> List<T> rawQuery(Class<? extends Model> type, String sql, String[] selectionArgs) {
-        Cursor cursor = Cache.openDatabase().rawQuery(sql, selectionArgs);
-        List<T> entities = processCursor(type, cursor);
-        cursor.close();
-
-        return entities;
-    }
-
-    public static int intQuery(final String sql, final String[] selectionArgs) {
-        final Cursor cursor = Cache.openDatabase().rawQuery(sql, selectionArgs);
-        final int number = processIntCursor(cursor);
-        cursor.close();
-
-        return number;
-    }
-
-    public static <T extends Model> T rawQuerySingle(Class<? extends Model> type, String sql, String[] selectionArgs) {
-        List<T> entities = rawQuery(type, sql, selectionArgs);
-
-        if (entities.size() > 0) {
-            return entities.get(0);
-        }
-
-        return null;
-    }
-
-    // Database creation
-
-    public static ArrayList<String> createUniqueDefinition(TableInfo tableInfo) {
-        final ArrayList<String> definitions = new ArrayList<String>();
-        sUniqueGroupMap = new HashMap<String, List<String>>();
-        sOnUniqueConflictsMap = new HashMap<String, ConflictAction>();
-
-        for (Field field : tableInfo.getFields()) {
-            createUniqueColumnDefinition(tableInfo, field);
-        }
-
-        if (sUniqueGroupMap.isEmpty()) {
-            return definitions;
-        }
-
-        Set<String> keySet = sUniqueGroupMap.keySet();
-        for (String key : keySet) {
-            List<String> group = sUniqueGroupMap.get(key);
-            ConflictAction conflictAction = sOnUniqueConflictsMap.get(key);
-
-            definitions.add(String.format("UNIQUE (%s) ON CONFLICT %s",
-                    TextUtils.join(", ", group), conflictAction.toString()));
-        }
-
-        return definitions;
-    }
-
-    public static void createUniqueColumnDefinition(TableInfo tableInfo, Field field) {
-        final String name = tableInfo.getColumnName(field);
-        final Column column = field.getAnnotation(Column.class);
-
-        if (field.getName().equals("mId")) {
-            return;
-        }
-
-        String[] groups = column.uniqueGroups();
-        ConflictAction[] conflictActions = column.onUniqueConflicts();
-        if (groups.length != conflictActions.length)
-            return;
-
-        for (int i = 0; i < groups.length; i++) {
-            String group = groups[i];
-            ConflictAction conflictAction = conflictActions[i];
-
-            if (TextUtils.isEmpty(group))
-                continue;
-
-            List<String> list = sUniqueGroupMap.get(group);
-            if (list == null) {
-                list = new ArrayList<String>();
-            }
-            list.add(name);
-
-            sUniqueGroupMap.put(group, list);
-            sOnUniqueConflictsMap.put(group, conflictAction);
-        }
-    }
 
     public static String[] createIndexDefinition(TableInfo tableInfo) {
         final ArrayList<String> definitions = new ArrayList<String>();
@@ -163,7 +71,7 @@ public final class SQLiteUtils {
 
         for (Map.Entry<String, List<String>> entry : sIndexGroupMap.entrySet()) {
             definitions.add(String.format("CREATE INDEX IF NOT EXISTS %s on %s(%s);",
-                    "index_" + tableInfo.getTableName() + "_" + entry.getKey(),
+                    "index_" + entry.getKey(),
                     tableInfo.getTableName(), TextUtils.join(", ", entry.getValue())));
         }
 
@@ -174,28 +82,23 @@ public final class SQLiteUtils {
         final String name = tableInfo.getColumnName(field);
         final Column column = field.getAnnotation(Column.class);
 
-        if (field.getName().equals("mId")) {
+        if (field.getName().equals(tableInfo.getIdName())) {
             return;
         }
 
         if (column.index()) {
             List<String> list = new ArrayList<String>();
             list.add(name);
-            sIndexGroupMap.put(name, list);
+            sIndexGroupMap.put(tableInfo.getTableName() + "_" + name, list);
         }
 
-        String[] groups = column.indexGroups();
-        for (String group : groups) {
-            if (TextUtils.isEmpty(group))
-                continue;
-
-            List<String> list = sIndexGroupMap.get(group);
+        if (column.indexGroups()) {
+            List<String> list = sIndexGroupMap.get(tableInfo.getTableName());
             if (list == null) {
                 list = new ArrayList<String>();
             }
-
             list.add(name);
-            sIndexGroupMap.put(group, list);
+            sIndexGroupMap.put(tableInfo.getTableName(), list);
         }
     }
 
@@ -209,13 +112,10 @@ public final class SQLiteUtils {
             }
         }
 
-        definitions.addAll(createUniqueDefinition(tableInfo));
-
         return String.format("CREATE TABLE IF NOT EXISTS %s (%s);", tableInfo.getTableName(),
                 TextUtils.join(", ", definitions));
     }
 
-    @SuppressWarnings("unchecked")
     public static String createColumnDefinition(TableInfo tableInfo, Field field) {
         StringBuilder definition = new StringBuilder();
 
@@ -238,7 +138,6 @@ public final class SQLiteUtils {
         }
 
         if (!TextUtils.isEmpty(definition)) {
-
             if (name.equals(tableInfo.getIdName())) {
                 definition.append(" PRIMARY KEY AUTOINCREMENT");
             } else if (column != null) {
@@ -275,7 +174,6 @@ public final class SQLiteUtils {
         return definition.toString();
     }
 
-    @SuppressWarnings("unchecked")
     public static <T extends Model> List<T> processCursor(Class<? extends Model> type, Cursor cursor) {
         TableInfo tableInfo = Cache.getTableInfo(type);
         String idName = tableInfo.getIdName();
@@ -285,10 +183,6 @@ public final class SQLiteUtils {
             Constructor<?> entityConstructor = type.getConstructor();
 
             if (cursor.moveToFirst()) {
-                /**
-                 * Obtain the columns ordered to fix issue #106 (https://github.com/pardom/ActiveAndroid/issues/106)
-                 * when the cursor have multiple columns with same name obtained from join tables.
-                 */
                 List<String> columnsOrdered = new ArrayList<String>(Arrays.asList(cursor.getColumnNames()));
                 do {
                     Model entity = Cache.getEntity(type, cursor.getLong(columnsOrdered.indexOf(idName)));
@@ -302,16 +196,7 @@ public final class SQLiteUtils {
                 while (cursor.moveToNext());
             }
 
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(
-                    "Your model " + type.getName() + " does not define a default " +
-                            "constructor. The default constructor is required for " +
-                            "now in ActiveAndroid models, as the process to " +
-                            "populate the ORM model is : " +
-                            "1. instantiate default model " +
-                            "2. populate fields"
-            );
-        } catch (Exception e) {
+        }catch (Exception e) {
             LogUtils.e("Failed to process cursor.", e);
         }
 
@@ -325,35 +210,83 @@ public final class SQLiteUtils {
         return 0;
     }
 
-    public static List<String> lexSqlScript(String sqlScript) {
-        ArrayList<String> sl = new ArrayList<String>();
-        boolean inString = false, quoteNext = false;
-        StringBuilder b = new StringBuilder(100);
+    public static <T extends Model> List<T> rawQuery(Class<? extends Model> type, String sql, String[] selectionArgs) {
+        Cursor cursor = Cache.openDatabase().rawQuery(sql, selectionArgs);
+        List<T> entities = processCursor(type, cursor);
+        cursor.close();
 
-        for (int i = 0; i < sqlScript.length(); i++) {
-            char c = sqlScript.charAt(i);
+        return entities;
+    }
 
-            if (c == ';' && !inString && !quoteNext) {
-                sl.add(b.toString());
-                b = new StringBuilder(100);
-                inString = false;
-                quoteNext = false;
-                continue;
-            }
+    public static int intQuery(final String sql, final String[] selectionArgs) {
+        final Cursor cursor = Cache.openDatabase().rawQuery(sql, selectionArgs);
+        final int number = processIntCursor(cursor);
+        cursor.close();
 
-            if (c == '\'' && !quoteNext) {
-                inString = !inString;
-            }
+        return number;
+    }
 
-            quoteNext = c == '\\' && !quoteNext;
+    public static <T extends Model> T rawQuerySingle(Class<? extends Model> type, String sql, String[] selectionArgs) {
+        List<T> entities = rawQuery(type, sql, selectionArgs);
 
-            b.append(c);
+        if (entities.size() > 0) {
+            return entities.get(0);
         }
 
-        if (b.length() > 0) {
-            sl.add(b.toString());
-        }
+        return null;
+    }
 
-        return sl;
+    public static SQLiteDatabase getDatabase() {
+        return Cache.openDatabase();
+    }
+
+    public static void beginTransaction() {
+        Cache.openDatabase().beginTransaction();
+    }
+
+    public static void endTransaction() {
+        Cache.openDatabase().endTransaction();
+    }
+
+    public static void setTransactionSuccessful() {
+        Cache.openDatabase().setTransactionSuccessful();
+    }
+
+    public static boolean inTransaction() {
+        return Cache.openDatabase().inTransaction();
+    }
+
+    public static void execSQL(String sql) {
+        Cache.openDatabase().execSQL(sql);
+    }
+
+    public static void execSQL(String sql, Object[] bindArgs) {
+        Cache.openDatabase().execSQL(sql, bindArgs);
+    }
+
+    // Convenience methods
+    public static void delete(Class<? extends Model> type, long id) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        new Delete().from(type).where(tableInfo.getIdName() + "=?", id).execute();
+    }
+
+    public static void delete(Class<? extends Model> type, String whereStr, Object... mWhereArguments) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        new Delete().from(type).where(whereStr, mWhereArguments).execute();
+    }
+
+    public static <T extends Model> T load(Class<T> type, long id) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return (T) new Select().from(type).where(tableInfo.getIdName() + "=?", id).executeSingle();
+    }
+
+    public static <T extends Model> List<T> loadAll(Class<T> type) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return new Select().from(type).execute();
+    }
+
+    public static <T extends Model> List<T> loadAll(Class<T> type, String whereStr, Object... mWhereArguments) {
+        TableInfo tableInfo = Cache.getTableInfo(type);
+        return new Select().from(type).where(whereStr, mWhereArguments).execute();
     }
 }

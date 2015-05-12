@@ -5,8 +5,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -15,23 +13,19 @@ import android.widget.TextView;
 
 import com.util.libdroid.DBManager;
 import com.util.libdroid.ViewInjector;
-import com.util.libdroid.db.Cache;
-import com.util.libdroid.db.Model;
-import com.util.libdroid.db.TableInfo;
 import com.util.libdroid.view.annotation.ContentView;
-import com.util.libdroid.view.annotation.InjectView;
+import com.util.libdroid.view.annotation.Find;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
 @ContentView(R.layout.activity_my)
 public class MyActivity extends Activity {
 
-    @InjectView(R.id.tv_text1)
+    @Find(R.id.tv_text1)
     TextView tv_text1;
 
-    @InjectView(R.id.lv_date)
+    @Find(R.id.lv_date)
     ListView mTvUserId;
 
     private MyAdapter mAdapter;
@@ -135,9 +129,9 @@ public class MyActivity extends Activity {
         }
 
         class ViewHolder{
-            @InjectView(R.id.tv_userId)
+            @Find(R.id.tv_userId)
             TextView tvUserId;
-            @InjectView(R.id.tv_userName)
+            @Find(R.id.tv_userName)
             TextView tvUserName;
         }
     }

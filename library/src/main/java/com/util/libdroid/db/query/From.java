@@ -2,6 +2,7 @@ package com.util.libdroid.db.query;
 
 import android.text.TextUtils;
 
+import com.util.libdroid.DBManager;
 import com.util.libdroid.db.Cache;
 import com.util.libdroid.db.Model;
 import com.util.libdroid.db.query.Join.JoinType;
@@ -275,7 +276,7 @@ public final class From implements Sqlable {
 			return SQLiteUtils.rawQuery(mType, toSql(), getArguments());
 			
 		} else {
-			SQLiteUtils.execSql(toSql(), getArguments());
+			SQLiteUtils.execSQL(toSql(), getArguments());
 			return null;
 		}
 	}

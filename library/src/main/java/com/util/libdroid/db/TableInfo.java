@@ -70,6 +70,7 @@ public final class TableInfo {
         return mIdName;
     }
 
+
     public Collection<Field> getFields() {
         return mColumnNames.keySet();
     }
@@ -77,7 +78,6 @@ public final class TableInfo {
     public String getColumnName(Field field) {
         return mColumnNames.get(field);
     }
-
 
     private Field getIdField(Class<?> type) {
         if (type.equals(Model.class)) {
@@ -92,5 +92,6 @@ public final class TableInfo {
 
         return null;
     }
+
 
 }
